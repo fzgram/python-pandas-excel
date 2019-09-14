@@ -36,7 +36,7 @@ def add_all_runs_sheet(c_df, writer):
 
 
 def add_runs_without_outliers(c_df, writer, outlier_threshold=120):
-    no_outliers_df = c_df[c_df['AR_fps'] >= 120]
+    no_outliers_df = c_df[c_df['AR_fps'] >= outlier_threshold]
     no_outliers_df.to_excel(writer, sheet_name='Runs without outliers', index=False)
     return no_outliers_df
 
@@ -47,7 +47,7 @@ def add_runs_without_outliers(c_df, writer, outlier_threshold=120):
 
 
 def add_outlier_runs(c_df, writer, outlier_threshold=120):
-    with_outliers_df = c_df[c_df['AR_fps'] < 120]
+    with_outliers_df = c_df[c_df['AR_fps'] < outlier_threshold]
     with_outliers_df.to_excel(writer, sheet_name='Outlier runs', index=False)
     return with_outliers_df
 
@@ -87,7 +87,7 @@ def add_statistics(c_df, writer):
     return fps_stat_df
 
 
-# ## Sheet 5 - Analyze FPS values from all runs
+# ## Sheet 5 - Analyze AR_fps column from all runs
 
 # In[7]:
 
@@ -95,56 +95,6 @@ def add_statistics(c_df, writer):
 def fps_all_analysis(c_df, writer):
     curr_row = 0
     fps_col_series = c_df['AR_fps'].copy()
-        
-    # Convert the column to dataframe with unique values and their count
-    fps_unique_count_df = fps_col_series.value_counts().sort_index().to_frame('Count of frame delay')
-    fps_unique_count_df.rename_axis('Frame Delay', inplace=True)
-    fps_unique_count_df.to_excel(writer, sheet_name='Frame Delay-Allruns', index=True)
-    
-    # Get current sheet pointer for future writing
-    curr_sheet = writer.sheets['Frame Delay-Allruns']
-    
-    # Add grand total of runs
-    curr_row = len(fps_unique_count_df) + 2 # update current row val. +2 because, 1 for column names of the dataframe and 1 for next empty row
-    curr_sheet.cell(row=curr_row, column=1).value = 'Grand Total'
-    curr_sheet.cell(row=curr_row, column=2).value = fps_unique_count_df.sum()[0]
-    
-    # Add outlier vs non-outlier stats
-    curr_row = curr_row + 1 # update current row val
-    
-    outlier_stat_df = pd.DataFrame(columns=['Frames Delayed', 'Distribution of Frame Delay with all runs', 'in %'])
-    total_non_outliers = len(fps_col_series[fps_col_series[0] <= 4])
-    total_outliers = len(fps_col_series[fps_col_series[0] > 4])
-    total_sum = fps_unique_count_df.sum()[0]
-
-    outlier_stat_df.loc[0] = ['<=4', total_non_outliers, round((total_non_outliers*100)/total_sum, 2) ]
-    outlier_stat_df.loc[1] = ['>4', total_outliers, round((total_outliers*100)/total_sum, 2) ]
-    outlier_stat_df.loc[2] = ['total', total_sum, 100]
-    outlier_stat_df.to_excel(writer, sheet_name='Frame Delay-Allruns', startrow=curr_row, index=False)
-    
-    # Add 3D pie chart image on the excel sheet
-    data = outlier_stat_df['in %'].values.tolist()[:-1]
-    labels = ['<=4', '>4']
-    plt.title("Distribution of Frame Delay with all runs, in %'")
-    plt.pie(data, labels=labels, autopct='%1.1f%%', startangle=120, shadow=True)
-    piefile = f"{input_excel_name}_FrameDelayAnalysis.png"
-    plt.savefig(piefile, dpi = 75)
-    img = openpyxl.drawing.image.Image(piefile)
-    img.anchor = 'G4'
-    curr_sheet.add_image(img)
-    
-    plt.close('all')
-    print(f"Saved pie chart: {piefile}")
-
-
-# ## Sheet 6 - Analyze AR_fps column from all non-outlier runs
-
-# In[8]:
-
-
-def fps_no_outliers_analysis(no_outliers_df, writer):
-    curr_row = 0
-    fps_col_series = no_outliers_df['AR_fps'].copy()
     
     # Convert the column to dataframe with unique values and their count
     fps_unique_count_df = fps_col_series.value_counts().sort_index().to_frame()
@@ -152,10 +102,10 @@ def fps_no_outliers_analysis(no_outliers_df, writer):
     fps_unique_count_df.rename(columns={'AR_fps':'count'})
     fps_unique_count_df['% of FPS value Distribution'] = round(fps_col_series.value_counts(normalize=True)*100, 2)
     fps_unique_count_df.sort_index()
-    fps_unique_count_df.to_excel(writer, sheet_name='FPS-Runswithoutoutliers', index=True)
+    fps_unique_count_df.to_excel(writer, sheet_name='FPS_Distribution', index=True)
         
     # Get current sheet pointer for future writing
-    curr_sheet = writer.sheets['FPS-Runswithoutoutliers']
+    curr_sheet = writer.sheets['FPS_Distribution']
     
     # Add grand total of runs
     curr_row = len(fps_unique_count_df) + 2 # update current row val
@@ -167,10 +117,11 @@ def fps_no_outliers_analysis(no_outliers_df, writer):
     # Add 3D pie chart image on the excel sheet
     data = fps_unique_count_df['% of FPS value Distribution'].values.tolist()
     labels = fps_unique_count_df.index.values.tolist()
-    plt.title("Distribution of Frame Delay with non-outlier runs, in %'")
-    plt.pie(data, labels=labels, autopct='%1.1f%%', startangle=120)
-    piefile = f"{input_excel_name}_FrameDelayAnalysisNonOutliers.png"
-    plt.savefig(piefile, dpi = 75)
+    plt.title("Distribution of Frame Delay values, in %'")
+    patches = plt.pie(data, labels=labels, autopct='%1.1f%%', startangle=120)
+    plt.legend(labels, loc=5)
+    piefile = f"{final_excel_file}_FPS_Distribution.png"
+    plt.savefig(piefile, dpi = 100)
     img = openpyxl.drawing.image.Image(piefile)
     img.anchor = 'G4'
     curr_sheet.add_image(img)
@@ -181,19 +132,30 @@ def fps_no_outliers_analysis(no_outliers_df, writer):
 
 # # MAIN
 
-# In[9]:
+# In[8]:
 
 
 #main
 if is_interactive():
-    input_excel = 'consolidation_result.xlsx'
+    input_excel = 'input/consolidation_result_ARGlass_TypeA.xlsx'
 else:
     input_excel = sys.argv[1]
 
 # get the name of input excel file, discard the extension
-input_excel_name, _ = os.path.splitext(input_excel)
-excel_file = f'{input_excel_name}_post_analysis.xlsx'
-writer = pd.ExcelWriter(excel_file, engine='openpyxl')
+input_excel_name, _ = os.path.splitext(os.path.basename(input_excel))
+
+# Create output prerequisites.
+#1. check if output dir exists, if not create
+output_dir = 'output'
+if not os.path.isdir(output_dir):
+    os.mkdir(output_dir)
+# Create output file name 
+output_file_name = f'{input_excel_name}_post_analysis.xlsx'
+# Create output file path
+final_excel_file = os.path.join(output_dir,output_file_name)
+
+# Create ExcelWriter object to populate output excel file
+writer = pd.ExcelWriter(final_excel_file, engine='openpyxl')
 
 print(f"*** Working on folder: {input_excel} ***")
 
@@ -201,7 +163,7 @@ print(f"*** Working on folder: {input_excel} ***")
 c_df = pd.read_excel(input_excel, 0, index_col=None)
 
 
-# In[10]:
+# In[9]:
 
 
 ##### Add required sheets #######
@@ -231,16 +193,11 @@ print("DONE!\n")
 
 # Sheet 5 - Analyze frame delay column from all runs
 print("Working on Sheet 5 - Analyze frame delay column from all runs")
-#fps_all_analysis(c_df, writer)
-print("DONE!\n")
-
-# Sheet 6 - Analyze frame delay distribution of non-outlier runs
-print("Working on Sheet 6 - Analyze frame delay distribution of non-outlier runs")
-fps_no_outliers_analysis(no_outliers_df, writer)
+fps_all_analysis(c_df, writer)
 print("DONE!\n")
 
 # Final step. Save the Excel writer object and close it
-print(f"Consolidating all sheets in final Excel: {excel_file}")
+print(f"Consolidating all sheets in final Excel: {final_excel_file}")
 writer.save()
 writer.close()
 print("DONE!")
