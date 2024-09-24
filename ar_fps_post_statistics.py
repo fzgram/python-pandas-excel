@@ -7,8 +7,8 @@
 import pandas as pd
 import os
 import sys
-import csv
-import re
+# import csv
+# import re
 import matplotlib.pyplot as plt
 import openpyxl
 
@@ -198,7 +198,6 @@ print("DONE!\n")
 
 # Final step. Save the Excel writer object and close it
 print(f"Consolidating all sheets in final Excel: {final_excel_file}")
-writer.save()
 writer.close()
 print("DONE!")
 

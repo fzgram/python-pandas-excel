@@ -63,11 +63,6 @@ These instructions will get you a copy of the project up and running on your loc
 ## Running the tests
 
 You can either run the script using jupyter lab or directly running the python version
-
-- Run using jupyter
-  1. Type `jupyter lab` on your terminal, it will open a web browser tab with the code.
-  2. Click on `Kernel` -> `Restart Kernel and Run All Cells`
-  3. Look for output in folder `output`
   
 - Run using python
   - WINDOWS
